@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f8fc" />
+  <title>CodeCanvas Studio — Code to Image</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;--surface:#ffffff;--surface-2:#f8faff;--ink:#172033;--muted:#78839a;
+      --line:#e7ebf3;--blue:#4567f5;--blue-2:#6e83ff;--purple:#8b5cf6;--green:#16a477;
+      --shadow:0 16px 42px rgba(28,43,83,.075);--radius:22px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;min-height:100vh;background:radial-gradient(circle at 8% 0%,rgba(100,130,255,.10),transparent 28rem),radial-gradient(circle at 96% 18%,rgba(153,112,255,.08),transparent 24rem),var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    button,textarea,select,input{font:inherit}
+    button{cursor:pointer}
+    .intro{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:#f7f8ff;transition:opacity .55s ease,visibility .55s ease}
+    .intro.hide{opacity:0;visibility:hidden}
+    .intro-content{text-align:center;animation:introUp .7s cubic-bezier(.2,.8,.2,1) both}
+    .intro-logo{width:76px;height:76px;margin:0 auto 18px;border-radius:25px;display:grid;place-items:center;background:linear-gradient(145deg,#4267f5,#8b5cf6);box-shadow:0 15px 35px rgba(76,95,238,.3);animation:logoFloat 2s ease-in-out infinite}
+    .intro-logo svg{width:42px;height:42px}
+    .intro h1{font-size:25px;margin:0;font-weight:850;letter-spacing:-.8px}
+    .intro p{color:#8992a7;margin:8px 0 0;font-size:13px;letter-spacing:.2px}
+    .intro-loader{height:3px;width:130px;margin:24px auto 0;background:#e7eafe;border-radius:20px;overflow:hidden}
+    .intro-loader span{display:block;width:45%;height:100%;border-radius:20px;background:linear-gradient(90deg,var(--blue),var(--purple));animation:loadBar 1.05s ease-in-out infinite}
+    @keyframes introUp{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+    @keyframes logoFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-6px) rotate(2deg)}}
+    @keyframes loadBar{from{transform:translateX(-110%)}to{transform:translateX(340%)}}
+    .app-header{position:sticky;top:0;z-index:30;background:rgba(250,251,255,.82);backdrop-filter:blur(18px);border-bottom:1px solid rgba(224,230,242,.8)}
+    .header-inner{max-width:1120px;margin:auto;padding:13px 24px;display:flex;align-items:center;gap:14px}
+    .brand-mark{width:43px;height:43px;flex:0 0 43px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,#4267f5,#8b5cf6);box-shadow:0 7px 17px rgba(75,96,240,.23)}
+    .brand-mark svg{width:25px;height:25px}
+    .brand-copy{min-width:0}
+    .brand-name{font-size:16px;font-weight:850;letter-spacing:-.45px;line-height:1.2}
+    .brand-sub{font-size:11px;color:var(--muted);margin-top:3px}
+    .header-spacer{flex:1}
+    .ready-pill{display:flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid #e4eee9;border-radius:30px;background:#f7fcf9;color:#278969;font-size:11px;font-weight:750;white-space:nowrap}
+    .ready-dot{width:7px;height:7px;border-radius:50%;background:#27bd8b;box-shadow:0 0 0 4px rgba(39,189,139,.12)}
+    .icon-btn{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line);border-radius:13px;background:#fff;color:#56617b;transition:.2s}
+    .icon-btn:hover{color:var(--blue);border-color:#cbd4ff;transform:translateY(-1px);box-shadow:0 6px 15px rgba(63,89,200,.08)}
+    .icon-btn svg{width:18px;height:18px}
+    main{max-width:940px;margin:0 auto;padding:32px 22px 55px}
+    .welcome{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:4px 0 22px}
+    .eyebrow{display:flex;align-items:center;gap:8px;color:#6678d9;font-size:10px;font-weight:850;letter-spacing:1.45px;text-transform:uppercase;margin-bottom:10px}
+    .eyebrow:before{content:"";width:19px;height:2px;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--purple))}
+    .welcome h2{font-size:clamp(25px,4vw,34px);letter-spacing:-1.25px;line-height:1.12;margin:0;font-weight:850}
+    .welcome p{margin:9px 0 0;color:var(--muted);font-size:13px;line-height:1.6;max-width:520px}
+    .welcome-chip{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fff;border:1px solid var(--line);border-radius:13px;color:#6d7890;font-size:11px;font-weight:700;box-shadow:0 5px 14px rgba(25,40,80,.035)}
+    .welcome-chip svg{width:15px;height:15px;color:var(--purple)}
+    .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .panel-head{display:flex;align-items:center;gap:12px;padding:19px 21px 16px}
+    .step-no{width:30px;height:30px;display:grid;place-items:center;border-radius:10px;background:#eef1ff;color:#4d65e9;font-size:11px;font-weight:850}
+    .panel-title{font-size:14px;font-weight:820;letter-spacing:-.2px}
+    .panel-caption{font-size:11px;color:var(--muted);margin-top:3px}
+    .head-spacer{flex:1}
+    .select-wrap{position:relative}
+    .select-wrap:after{content:"";position:absolute;right:13px;top:50%;width:7px;height:7px;border-right:1.7px solid #71809c;border-bottom:1.7px solid #71809c;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+    select{appearance:none;outline:none;border:1px solid #e4e8f1;background:#fbfcff;border-radius:11px;padding:10px 34px 10px 12px;font-size:11px;font-weight:700;color:#53617d;max-width:230px}
+    select:focus{border-color:#aab7ff;box-shadow:0 0 0 3px rgba(78,103,244,.1)}
+    .editor-wrap{padding:0 20px 18px}
+    .editor-shell{display:flex;min-height:265px;max-height:460px;background:#111827;border:1px solid #252d3d;border-radius:15px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+    .line-numbers{width:43px;flex:0 0 43px;padding:17px 10px 17px 0;text-align:right;white-space:pre;overflow:hidden;background:#151d2c;color:#64718a;border-right:1px solid #263044;font:12px/1.72 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;user-select:none}
+    #codeInput{width:100%;min-width:0;min-height:265px;resize:vertical;border:0;outline:0;padding:16px 17px;background:transparent;color:#e1e8f6;caret-color:#91a3ff;font:12px/1.72 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;tab-size:2;white-space:pre;overflow:auto}
+    #codeInput::placeholder{color:#65718a;opacity:1}
+    .editor-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 2px 0;color:#8a94a8;font-size:10px}
+    .editor-foot-left,.editor-foot-right{display:flex;align-items:center;gap:13px}
+    .text-action{border:0;background:none;padding:4px 0;color:#6979dc;font-size:10px;font-weight:800}
+    .text-action:hover{color:#3f56d7;text-decoration:underline}
+    .editor-actions{display:flex;align-items:center;gap:10px;margin-top:16px}
+    .helper-copy{flex:1;color:#8b95a9;font-size:10px;line-height:1.5}
+    .btn{border:1px solid transparent;border-radius:12px;padding:11px 15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:11px;font-weight:800;transition:transform .18s,box-shadow .18s,background .18s;white-space:nowrap}
+    .btn svg{width:15px;height:15px}
+    .btn:active{transform:scale(.98)}
+    .btn-soft{background:#f7f8fc;border-color:#e8ebf3;color:#66718a}
+    .btn-soft:hover{background:#eff2ff;color:#4d63df;border-color:#d9dfff}
+    .btn-primary{background:linear-gradient(110deg,#4567f5,#765cf5);color:#fff;box-shadow:0 8px 18px rgba(75,92,231,.23);padding:12px 20px}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 11px 22px rgba(75,92,231,.3)}
+    .btn-primary:disabled{opacity:.65;cursor:wait;transform:none}
+    .viewer-panel{margin-top:19px}
+    .viewer-head{padding-bottom:14px}
+    .viewer-tools{display:flex;gap:8px;align-items:center}
+    .viewer-stage-wrap{padding:0 20px 19px}
+    .preview-stage{position:relative;width:100%;aspect-ratio:1/1;max-height:660px;min-height:260px;display:grid;place-items:center;overflow:hidden;border:1px solid #e7eaf2;border-radius:16px;background-color:#f9faff;background-image:linear-gradient(45deg,#f0f2f8 25%,transparent 25%),linear-gradient(-45deg,#f0f2f8 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#f0f2f8 75%),linear-gradient(-45deg,transparent 75%,#f0f2f8 75%);background-size:22px 22px;background-position:0 0,0 11px,11px -11px,-11px 0}
+    .preview-placeholder{max-width:300px;padding:25px;text-align:center;color:#8a94aa}
+    .placeholder-icon{width:62px;height:62px;border:1px solid #e5e9f3;background:rgba(255,255,255,.85);border-radius:20px;display:grid;place-items:center;margin:0 auto 14px;box-shadow:0 8px 20px rgba(47,62,110,.06)}
+    .placeholder-icon svg{width:29px;height:29px;color:#7789ed}
+    .preview-placeholder h3{margin:0;color:#53607b;font-size:14px;font-weight:800}
+    .preview-placeholder p{margin:7px 0 0;font-size:11px;line-height:1.6}
+    .rendered-media{width:100%;height:100%;display:block;border:0;object-fit:contain;background:transparent}
+    .preview-stage .rendered-iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+    .result-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 2px 0}
+    .result-info{display:flex;align-items:center;gap:8px;color:#8993a7;font-size:10px}
+    .result-check{width:7px;height:7px;border-radius:50%;background:#2bb889;box-shadow:0 0 0 4px rgba(43,184,137,.1)}
+    .download-actions{display:flex;gap:8px}
+    .download-btn{border:1px solid #e3e8f2;background:#fff;border-radius:10px;padding:9px 12px;display:flex;align-items:center;gap:7px;color:#5d6a84;font-size:10px;font-weight:850;transition:.18s}
+    .download-btn svg{width:14px;height:14px}
+    .download-btn:hover{border-color:#cbd4ff;color:#4b64e7;background:#f8f9ff;transform:translateY(-1px)}
+    .download-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    .bottom-note{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:19px;color:#99a2b3;font-size:10px;text-align:center}
+    .bottom-note svg{width:13px;height:13px}
+    .modal-backdrop{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(19,27,48,.42);backdrop-filter:blur(7px)}
+    .modal-backdrop.open{display:flex;animation:fadeIn .2s ease}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .settings-modal{width:min(760px,100%);max-height:min(86vh,820px);display:flex;flex-direction:column;background:#fff;border:1px solid rgba(255,255,255,.7);border-radius:22px;box-shadow:0 25px 80px rgba(14,25,55,.24);overflow:hidden;animation:modalUp .25s cubic-bezier(.2,.8,.2,1)}
+    @keyframes modalUp{from{opacity:0;transform:translateY(13px) scale(.985)}to{opacity:1;transform:none}}
+    .modal-head{display:flex;align-items:center;gap:12px;padding:19px 21px;border-bottom:1px solid var(--line)}
+    .settings-icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#f0f2ff;color:#596de4}
+    .settings-icon svg{width:19px;height:19px}
+    .modal-head h3{margin:0;font-size:15px;font-weight:850}
+    .modal-head p{margin:4px 0 0;color:var(--muted);font-size:10px}
+    .modal-close{margin-left:auto;width:34px;height:34px;border:0;border-radius:10px;background:#f5f6fa;color:#748097;font-size:20px;line-height:1}
+    .modal-close:hover{background:#edf0ff;color:#4c62db}
+    .modal-body{padding:18px 20px 22px;overflow:auto}
+    .settings-tip{display:flex;gap:10px;align-items:flex-start;padding:12px 13px;border:1px solid #e9edff;background:#f8f9ff;border-radius:13px;color:#697597;font-size:10px;line-height:1.55;margin-bottom:15px}
+    .settings-tip svg{width:16px;height:16px;flex:0 0 16px;color:#6578e5;margin-top:1px}
+    .prompt-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .prompt-card{border:1px solid #e8ebf2;border-radius:14px;overflow:hidden;background:#fff;transition:border .18s,box-shadow .18s}
+    .prompt-card:hover{border-color:#d4dcff;box-shadow:0 7px 18px rgba(46,66,140,.06)}
+    .prompt-card-head{display:flex;align-items:center;gap:8px;padding:11px 12px 8px}
+    .prompt-code{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:#f0f2ff;color:#596de7;font-size:9px;font-weight:900}
+    .prompt-title{font-size:11px;font-weight:850}
+    .prompt-sub{font-size:9px;color:#929bae;margin-top:2px}
+    .prompt-card textarea{width:calc(100% - 24px);margin:0 12px;height:118px;resize:vertical;border:1px solid #edf0f5;border-radius:9px;background:#fafbfe;padding:9px;color:#626e86;font:10px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;outline:none}
+    .prompt-card textarea:focus{border-color:#c5ceff}
+    .prompt-card-foot{display:flex;justify-content:flex-end;padding:8px 12px 11px}
+    .copy-prompt{display:flex;align-items:center;gap:6px;border:0;border-radius:8px;padding:7px 10px;background:#f0f2ff;color:#5268dc;font-size:9px;font-weight:850}
+    .copy-prompt:hover{background:#e5e9ff}
+    .copy-prompt svg{width:12px;height:12px}
+    .toast{position:fixed;z-index:200;left:50%;bottom:22px;transform:translate(-50%,20px);opacity:0;pointer-events:none;padding:11px 15px;border-radius:12px;background:#182238;color:#fff;font-size:11px;font-weight:700;box-shadow:0 10px 26px rgba(10,20,45,.22);transition:.25s;max-width:calc(100% - 32px);text-align:center}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    .toast.error{background:#a83c51}
+    .ai-launch{height:40px;border:0;border-radius:13px;padding:0 14px;display:flex;align-items:center;gap:8px;background:linear-gradient(112deg,#4567f5,#8858ee);color:#fff;font-size:11px;font-weight:850;box-shadow:0 7px 18px rgba(75,92,231,.2);transition:.2s;white-space:nowrap}
+    .ai-launch:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(75,92,231,.27)}.ai-launch.active{background:linear-gradient(112deg,#344cc5,#7042d5)}.ai-launch svg{width:17px;height:17px}
+    [hidden]{display:none!important}
+    .ai-workspace{animation:aiEnter .38s cubic-bezier(.2,.8,.2,1) both}.ai-workspace[hidden]{display:none!important}@keyframes aiEnter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    .ai-hero{position:relative;display:flex;align-items:center;justify-content:space-between;min-height:205px;margin:0 0 20px;padding:24px 34px;border-radius:25px;overflow:hidden;background:linear-gradient(115deg,#101b42 0%,#283a82 58%,#6042a7 100%);color:#fff;box-shadow:0 20px 42px rgba(39,49,116,.18)}
+    .ai-hero:before,.ai-hero:after{content:"";position:absolute;border-radius:50%;pointer-events:none}.ai-hero:before{width:260px;height:260px;right:16%;top:-175px;background:#60d8f5;filter:blur(75px);opacity:.32}.ai-hero:after{width:220px;height:220px;right:-65px;bottom:-165px;background:#b08cff;filter:blur(70px);opacity:.42}
+    .ai-hero-copy{position:relative;z-index:2;max-width:570px}.ai-hero .eyebrow{color:#aab9ff;margin-bottom:12px}.ai-hero .eyebrow:before{background:#8ee9ff}.ai-hero h2{margin:0;font-size:clamp(25px,4vw,38px);letter-spacing:-1.2px;line-height:1.06;font-weight:900}.ai-hero h2 span{color:#a9baff}.ai-hero p{max-width:510px;margin:12px 0 0;color:#c2cbed;font-size:12px;line-height:1.65}
+    .ai-orbit{position:relative;z-index:1;width:155px;height:155px;flex:0 0 155px;margin-right:30px;display:grid;place-items:center}.orbit-ring{position:absolute;inset:4px;border:1px solid rgba(194,207,255,.32);border-radius:50%;animation:orbitSpin 13s linear infinite}.orbit-two{inset:20px;border-style:dashed;opacity:.65;animation-direction:reverse;animation-duration:18s}.orbit-core{width:76px;height:76px;border-radius:24px;display:grid;place-items:center;background:linear-gradient(145deg,#7894ff,#a879fa);color:#fff;box-shadow:0 0 45px rgba(140,151,255,.45),inset 0 1px rgba(255,255,255,.5);animation:coreFloat 3s ease-in-out infinite}.orbit-core svg{width:39px;height:39px}.ai-orbit i,.ai-orbit b{position:absolute;width:9px;height:9px;border-radius:50%;background:#8cecff;box-shadow:0 0 13px #8cecff}.ai-orbit i{top:13px;right:28px}.ai-orbit b{bottom:18px;left:16px;width:6px;height:6px;background:#c8a5ff;box-shadow:0 0 12px #c8a5ff}@keyframes orbitSpin{to{transform:rotate(360deg)}}@keyframes coreFloat{50%{transform:translateY(-6px) rotate(3deg)}}
+    .ai-prompt-panel,.ai-result-panel{margin-bottom:18px}.ai-step{background:#eeefff;color:#5c60df}.ai-form-body,.ai-result-body{padding:0 21px 20px}.field-label{display:block;margin:0 0 7px;color:#65718c;font-size:10px;font-weight:850;letter-spacing:.2px}.ai-prompt-input{width:100%;min-height:116px;resize:vertical;border:1px solid #e4e8f2;border-radius:14px;background:#fbfcff;padding:15px 16px;outline:none;color:#27324b;font:12px/1.65 Inter,system-ui,sans-serif;transition:.2s}.ai-prompt-input:focus{border-color:#aab8ff;box-shadow:0 0 0 4px rgba(82,105,240,.09);background:#fff}.ai-prompt-input::placeholder{color:#a1aabd}
+    .ai-options-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.ai-field .select-wrap{width:100%}.ai-field select{width:100%;max-width:none;height:41px;padding-top:10px;padding-bottom:10px;background:#fbfcff;color:#4e5c78;font-size:10px}
+    .ai-quality-note{display:flex;gap:8px;align-items:flex-start;margin-top:14px;padding:10px 12px;border-radius:11px;background:#f7f8ff;color:#8490a8;font-size:9px;line-height:1.55}.ai-quality-note svg{width:14px;height:14px;flex:0 0 14px;color:#7785e8}.ai-actions{display:flex;gap:9px;align-items:center;margin-top:16px}.ai-generate-btn{min-width:205px;min-height:42px}.ai-inline-hint{display:flex;align-items:center;gap:8px;margin-top:12px;color:#939db0;font-size:9px}.live-dot{width:7px;height:7px;border-radius:50%;background:#31bd91;box-shadow:0 0 0 4px #31bd9118}.ai-inline-hint .text-action{margin-left:auto}
+    .ai-model-badge{padding:6px 9px;border-radius:20px;background:#f3f4ff;color:#6472d9;font-size:8px;font-weight:900;letter-spacing:.55px}.ai-progress{padding:14px;border:1px solid #e6eaff;border-radius:13px;background:#fafbff;margin-bottom:14px}.ai-progress-line{display:flex;align-items:center;gap:9px;color:#63718e;font-size:10px}.ai-progress-line b{margin-left:auto;color:#7181df;font-size:9px}.ai-spinner{width:15px;height:15px;border:2px solid #dfe4ff;border-top-color:#6679f2;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.ai-progress-track{height:4px;margin-top:11px;border-radius:10px;background:#e9edff;overflow:hidden}.ai-progress-track span{display:block;width:28%;height:100%;border-radius:10px;background:linear-gradient(90deg,#5b75f3,#a66df4);animation:progressSweep 1.5s ease-in-out infinite}@keyframes progressSweep{0%{transform:translateX(-110%)}100%{transform:translateX(430%)}}
+    .ai-live-code{border:1px solid #27334a;border-radius:14px;overflow:hidden;background:#101827;color:#e1e8fb}.ai-live-top{display:flex;justify-content:space-between;align-items:center;padding:10px 13px;background:#172237;border-bottom:1px solid #29344a;color:#8f9bb6;font-size:9px}.ai-live-top span:first-child{display:flex;align-items:center;gap:7px;color:#a8b6dc;font-weight:850;letter-spacing:.7px}.ai-live-top i{width:6px;height:6px;background:#69dcb4;border-radius:50%;box-shadow:0 0 10px #69dcb4}.ai-live-code pre{min-height:120px;max-height:260px;overflow:auto;margin:0;padding:14px;color:#d8e2f7;font:10px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+    .ai-output-layout{display:block}.ai-image-stage{display:grid;place-items:center;width:100%;min-height:300px;max-height:680px;aspect-ratio:1/1;overflow:hidden;border:1px solid #e7eaf2;border-radius:15px;background-color:#fafbff;background-image:linear-gradient(45deg,#f0f2f8 25%,transparent 25%),linear-gradient(-45deg,#f0f2f8 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#f0f2f8 75%),linear-gradient(-45deg,transparent 75%,#f0f2f8 75%);background-size:22px 22px;background-position:0 0,0 11px,11px -11px,-11px 0}.ai-image-stage .rendered-media{width:100%;height:100%;object-fit:contain}.ai-image-stage .rendered-iframe{width:100%;height:100%;min-height:300px;border:0;background:#fff}.ai-result-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 2px}.ai-result-meta{color:#8490a7;font-size:9px}.ai-result-buttons{display:flex;gap:7px;flex-wrap:wrap}.ai-result-buttons .download-btn{padding:8px 10px;font-size:9px}.ai-code-panel{border:1px solid #e7eaf2;border-radius:13px;overflow:hidden}.ai-code-panel-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f8f9fd;color:#64718a;font-size:10px}.ai-code-panel-head span{font-size:8px;font-weight:900;color:#7180db;letter-spacing:.5px}.ai-code-panel textarea{display:block;width:100%;min-height:180px;max-height:390px;resize:vertical;border:0;outline:0;padding:13px;background:#111827;color:#e2e9f7;font:10px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;overflow:auto}.ai-idle-placeholder{min-height:210px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;color:#8b96aa;gap:7px}.ai-idle-placeholder b{font-size:12px;color:#606c86}.ai-idle-placeholder span{max-width:290px;font-size:10px;line-height:1.6}.ai-idle-icon{width:54px;height:54px;display:grid;place-items:center;border:1px solid #e9ecf4;background:#fafbff;border-radius:17px;margin-bottom:5px;color:#8491eb}.ai-idle-icon svg{width:25px;height:25px}.ai-empty-state{text-align:center;color:#8b96aa;font-size:11px}.ai-empty-state .placeholder-icon{display:grid}
+    .api-settings-card{padding:15px;border:1px solid #e6eaff;border-radius:15px;background:linear-gradient(135deg,#fbfcff,#f5f6ff);margin-bottom:16px}.api-settings-title{display:flex;align-items:center;gap:10px;margin-bottom:14px}.api-settings-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:#e9edff;color:#5c6de1}.api-settings-icon svg{width:17px;height:17px}.api-settings-title b{display:block;color:#34405d;font-size:11px}.api-settings-title span{display:block;color:#919bb0;font-size:9px;margin-top:3px}.api-secure-tag{margin-left:auto!important;padding:5px 8px;border-radius:20px;background:#eaf8f2;color:#29936c!important;font-size:8px!important;font-weight:900;letter-spacing:.5px}.api-key-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.api-key-field{position:relative}.api-key-field input{width:100%;height:39px;padding:0 52px 0 11px;border:1px solid #e5e9f2;border-radius:9px;background:white;outline:none;color:#3d4964;font:10px ui-monospace,monospace}.api-key-field input:focus{border-color:#aab7ff;box-shadow:0 0 0 3px #6677ef13}.key-toggle{position:absolute;right:7px;bottom:7px;border:0;background:#f1f3ff;color:#6878d8;border-radius:6px;padding:5px 7px;font-size:8px;font-weight:850}.remember-key{display:flex;align-items:center;gap:8px;margin-top:12px;color:#6c7891;font-size:9px}.remember-key input{accent-color:#6478ed}.api-key-actions{display:flex;gap:8px;margin-top:12px}.api-key-actions .btn{padding:9px 12px;font-size:9px}.api-security-note{margin:12px 0 0;color:#939db0;font-size:9px;line-height:1.6}.api-security-note b{color:#66728b}
+    @media(max-width:650px){
+      .ai-launch{height:37px;padding:0 10px;font-size:10px}.ai-launch svg{width:15px;height:15px}
+      .ai-hero{min-height:185px;padding:23px 18px;border-radius:19px}.ai-hero p{font-size:11px;max-width:340px}.ai-orbit{width:84px;height:84px;flex-basis:84px;margin:0 0 0 6px}.orbit-core{width:49px;height:49px;border-radius:16px}.orbit-core svg{width:26px;height:26px}.orbit-two{inset:13px}.orbit-one{inset:0}.ai-orbit i{top:4px;right:14px}.ai-orbit b{bottom:5px;left:4px}
+      .ai-form-body,.ai-result-body{padding-left:13px;padding-right:13px}.ai-options-grid{grid-template-columns:1fr 1fr;gap:10px}.ai-field-size{grid-column:span 2}.ai-actions{flex-wrap:wrap}.ai-generate-btn{flex:1;min-width:0}.ai-actions .btn-soft{flex:0 0 auto}.ai-inline-hint{flex-wrap:wrap}.ai-inline-hint .text-action{margin-left:0}.ai-image-stage{min-height:230px}.ai-result-toolbar{align-items:flex-start;flex-direction:column}.ai-result-buttons{width:100%}.ai-result-buttons .download-btn{flex:1;justify-content:center}.api-key-grid{grid-template-columns:1fr}.api-key-actions .btn{flex:1}
+    }
+    @media(max-width:650px){
+      .header-inner{padding:11px 15px}.brand-mark{width:39px;height:39px;flex-basis:39px;border-radius:13px}.brand-name{font-size:14px}.brand-sub{font-size:10px}.ready-pill{font-size:0;padding:9px}.ready-dot{width:7px;height:7px}
+      main{padding:24px 13px 38px}.welcome{align-items:flex-start;margin-bottom:17px}.welcome h2{font-size:27px}.welcome p{font-size:12px}.welcome-chip{display:none}
+      .panel{border-radius:18px}.panel-head{padding:15px 14px 13px;gap:9px}.step-no{width:27px;height:27px}.panel-caption{font-size:10px}.select-wrap select{max-width:170px;font-size:10px;padding:9px 29px 9px 9px}
+      .editor-wrap,.viewer-stage-wrap{padding-left:12px;padding-right:12px}.editor-shell{min-height:245px}.line-numbers{width:34px;flex-basis:34px;font-size:10px;padding-right:7px}#codeInput{min-height:245px;padding:14px 11px;font-size:11px}
+      .editor-actions{flex-wrap:wrap}.helper-copy{flex-basis:100%;order:2}.editor-actions .btn{flex:1}.viewer-tools select{max-width:130px}.preview-stage{min-height:230px;border-radius:12px}.result-bar{align-items:flex-start;flex-direction:column}.download-actions{width:100%}.download-btn{flex:1;justify-content:center}
+      .prompt-grid{grid-template-columns:1fr}.modal-backdrop{padding:10px}.settings-modal{max-height:91vh;border-radius:17px}.modal-body{padding:13px}.modal-head{padding:14px}.prompt-card textarea{height:100px}
+    }
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <div class="intro" id="introScreen" aria-hidden="true">
+    <div class="intro-content">
+      <div class="intro-logo"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M13 13.5h14.5a7 7 0 0 1 0 14H20a5.5 5.5 0 0 0 0 11h14" stroke="white" stroke-width="3.4" stroke-linecap="round"/><path d="M30 8.5 35.5 14 30 19.5M18 28.5l-5.5 5.5 5.5 5.5" stroke="white" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h1>CodeCanvas Studio</h1><p>Turn your code into beautiful images</p><div class="intro-loader"><span></span></div>
+    </div>
+  </div>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-mark"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M13 13.5h14.5a7 7 0 0 1 0 14H20a5.5 5.5 0 0 0 0 11h14" stroke="white" stroke-width="3.4" stroke-linecap="round"/><path d="M30 8.5 35.5 14 30 19.5M18 28.5l-5.5 5.5 5.5 5.5" stroke="white" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="brand-copy"><div class="brand-name">CodeCanvas Studio</div><div class="brand-sub">Code in. Image out.</div></div>
+      <div class="header-spacer"></div>
+      <div class="ready-pill"><span class="ready-dot"></span> LOCAL ENGINE READY</div>
+      <button class="ai-launch" id="openAIStudio" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 13.8 8.2 19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg><span>AI Studio</span></button>
+      <button class="icon-btn" id="openSettings" aria-label="Open settings" title="Settings and API keys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="ai-workspace" id="aiWorkspace" hidden>
+      <div class="ai-hero">
+        <div class="ai-hero-copy"><div class="eyebrow">AI POWERED IMAGE CREATOR</div><h2>Describe it.<br><span>Watch it come alive.</span></h2><p>Choose a code style and model. The AI writes the code live, then CodeCanvas renders it into an image you can export.</p></div>
+        <div class="ai-orbit" aria-hidden="true"><div class="orbit-ring orbit-one"></div><div class="orbit-ring orbit-two"></div><div class="orbit-core"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m22 18-14 14 14 14M42 18l14 14-14 14M37 11 27 53"/></svg></div><i></i><b></b></div>
+      </div>
+      <section class="panel ai-prompt-panel">
+        <div class="panel-head"><div class="step-no ai-step">AI</div><div><div class="panel-title">Create with AI</div><div class="panel-caption">Tell the AI what image you want to make</div></div><div class="head-spacer"></div><button class="text-action" id="aiBackToManual">Manual editor →</button></div>
+        <div class="ai-form-body">
+          <label class="field-label" for="aiPrompt">Your image idea</label>
+          <textarea id="aiPrompt" class="ai-prompt-input" rows="4" placeholder="Example: Create a premium futuristic technology poster with a glowing blue glass sphere, subtle grid lines, cinematic lighting, and the title ‘NEXT GEN AI’..."></textarea>
+          <div class="ai-options-grid">
+            <div class="ai-field"><label class="field-label" for="aiFormat">Code format</label><div class="select-wrap"><select id="aiFormat"><option value="auto">Auto · let AI choose</option><option value="svg">SVG · vector image</option><option value="xml">XML / SVG</option><option value="htmlcss">HTML + CSS · detailed design</option><option value="html">HTML · web composition</option><option value="css">CSS Art</option><option value="mermaid">Mermaid · diagram</option><option value="canvasjs">Canvas JavaScript</option></select></div></div>
+            <div class="ai-field"><label class="field-label" for="aiQuality">Image quality</label><div class="select-wrap"><select id="aiQuality"><option value="standard">Standard</option><option value="high" selected>High quality · recommended</option><option value="ultra">Ultra detail · maximum effort</option></select></div></div>
+            <div class="ai-field"><label class="field-label" for="aiModel">AI model</label><div class="select-wrap"><select id="aiModel"><option value="gemini-3.8-flash">Gemini 3.8 Flash · Recommended</option><option value="gemma-4-26b-a4b-it">Gemma 4 26B A4B IT</option></select></div></div>
+            <div class="ai-field"><label class="field-label" for="aiKeySlot">API key profile</label><div class="select-wrap"><select id="aiKeySlot"><option value="A">API Key 1</option><option value="B">API Key 2</option></select></div></div>
+            <div class="ai-field ai-field-size"><label class="field-label" for="aiOutputSize">Image dimensions</label><div class="select-wrap"><select id="aiOutputSize"><option value="1080x1080">Square · 1080 × 1080</option><option value="1080x1350">Portrait · 1080 × 1350</option><option value="1080x1920">Story · 1080 × 1920</option><option value="1920x1080">Landscape · 1920 × 1080</option><option value="1200x628">Wide card · 1200 × 628</option></select></div></div>
+          </div>
+          <div class="ai-quality-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="9"/></svg><span>High / Ultra improves the code-generation brief and visual detail. Final pixel dimensions are controlled by the output size. The selected model generates code; the local renderer creates the image.</span></div>
+          <div class="ai-actions"><button class="btn btn-primary ai-generate-btn" id="aiGenerateBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-2-5.8L4 11l6-2.2L12 3Z"/><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></svg> Generate Image with AI</button><button class="btn btn-soft" id="aiCancelBtn" hidden>Stop</button><button class="btn btn-soft" id="aiClearPrompt">Clear prompt</button></div>
+          <div class="ai-inline-hint"><span class="live-dot"></span><span id="aiConnectionStatus">Ready · Add your Google AI Studio API keys in Settings</span><button class="text-action" id="aiOpenSettings">Configure API keys</button></div>
+        </div>
+      </section>
+      <section class="panel ai-result-panel" id="aiResultPanel">
+        <div class="panel-head"><div class="step-no">02</div><div><div class="panel-title">AI result</div><div class="panel-caption" id="aiResultCaption">Your image and generated code will appear here</div></div><div class="head-spacer"></div><span class="ai-model-badge" id="aiUsedModel">AI READY</span></div>
+        <div class="ai-result-body">
+          <div class="ai-progress" id="aiProgress" hidden><div class="ai-progress-line"><span class="ai-spinner"></span><span id="aiProgressText">AI is preparing your design…</span><b id="aiProgressPct">LIVE</b></div><div class="ai-progress-track"><span></span></div></div>
+          <div class="ai-live-code" id="aiLivePanel" hidden><div class="ai-live-top"><span><i></i> LIVE CODE STREAM</span><span id="aiLiveChars">0 characters</span></div><pre id="aiStreamCode"></pre></div>
+          <div class="ai-output-layout" id="aiOutputLayout" hidden>
+            <div class="ai-image-stage" id="aiImageStage"><div class="ai-empty-state"><div class="placeholder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m4 16 5-5 4 4 3-3 4 5"/></svg></div><b>Your result will appear here</b></div></div>
+            <div class="ai-result-toolbar"><div class="ai-result-meta" id="aiFinalMeta">Generated image</div><div class="ai-result-buttons"><button class="download-btn" id="aiViewCode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 8-4 4 4 4m8-8 4 4-4 4m-3-10-2 12"/></svg> View code</button><button class="download-btn" id="aiCopyCode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg> Copy code</button><button class="download-btn" id="aiDownloadPng">PNG</button><button class="download-btn" id="aiDownloadJpg">JPG</button></div></div>
+            <div class="ai-code-panel" id="aiCodePanel" hidden><div class="ai-code-panel-head"><b>Generated source code</b><span id="aiCodeTypeLabel">SVG</span></div><textarea id="aiGeneratedCode" readonly spellcheck="false"></textarea></div>
+          </div>
+          <div class="ai-idle-placeholder" id="aiIdlePlaceholder"><div class="ai-idle-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M7 15 10 12l2 2 5-5M14 9h3v3"/></svg></div><b>Ready for your next idea</b><span>Describe the image above and start generating. Your code will stream here first.</span></div>
+        </div>
+      </section>
+    </section>
+    <div id="manualWorkspace">
+    <section class="welcome">
+      <div><div class="eyebrow">CREATIVE CODE WORKSPACE</div><h2>Turn code into<br>beautiful images.</h2><p>Paste your SVG, XML, HTML, CSS or Mermaid code. Generate a live preview and export it as a high-quality image.</p></div>
+      <div class="welcome-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4m0-12.8L17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="5"/></svg> No API key required</div>
+    </section>
+
+    <section class="panel" aria-labelledby="inputHeading">
+      <div class="panel-head">
+        <div class="step-no">01</div><div><div class="panel-title" id="inputHeading">Code input</div><div class="panel-caption">Choose a format, then paste your generated code</div></div>
+        <div class="head-spacer"></div>
+        <div class="select-wrap"><select id="codeType" aria-label="Code format"><option value="auto">Auto Detect</option><option value="svg">SVG → Image</option><option value="xml">XML → Image</option><option value="html">HTML → Image</option><option value="htmlcss">HTML + CSS → Image</option><option value="css">CSS Art → Image</option><option value="mermaid">Mermaid Flowchart → Image</option><option value="canvasjs">Canvas JavaScript → Image</option></select></div>
+      </div>
+      <div class="editor-wrap">
+        <div class="editor-shell"><div class="line-numbers" id="lineNumbers">1</div><textarea id="codeInput" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Paste your code here" placeholder="Paste your code here...&#10;&#10;Example formats:&#10;• <svg>...</svg>&#10;• XML with an SVG root element&#10;• HTML with inline CSS&#10;• Mermaid flowchart code"></textarea></div>
+        <div class="editor-foot"><div class="editor-foot-left"><span id="lineCount">1 line</span><span id="charCount">0 characters</span></div><div class="editor-foot-right"><button class="text-action" id="loadExample">Load example</button><button class="text-action" id="clearCode">Clear code</button></div></div>
+        <div class="editor-actions"><div class="helper-copy">Tip: Auto Detect can identify most supported formats. Use Settings to copy an AI prompt for each format.</div><button class="btn btn-soft" id="pasteCode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M9 3h6v4H9z"/><path d="M12 14h9m-4-4 4 4-4 4"/></svg> Paste</button><button class="btn btn-primary" id="generateBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-2-5.8L4 11l6-2.2L12 3Z"/><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></svg> Generate Image</button></div>
+      </div>
+    </section>
+
+    <section class="panel viewer-panel" aria-labelledby="viewerHeading">
+      <div class="panel-head viewer-head">
+        <div class="step-no">02</div><div><div class="panel-title" id="viewerHeading">Image viewer</div><div class="panel-caption">Your generated image will appear here</div></div>
+        <div class="head-spacer"></div>
+        <div class="viewer-tools"><div class="select-wrap"><select id="outputSize" aria-label="Output image size"><option value="1080x1080">Square · 1080 × 1080</option><option value="1080x1350">Portrait · 1080 × 1350</option><option value="1080x1920">Story · 1080 × 1920</option><option value="1920x1080">Landscape · 1920 × 1080</option><option value="1200x628">Wide card · 1200 × 628</option></select></div></div>
+      </div>
+      <div class="viewer-stage-wrap">
+        <div class="preview-stage" id="previewStage">
+          <div class="preview-placeholder" id="previewPlaceholder"><div class="placeholder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div><h3>Your canvas is waiting</h3><p>Paste some code above and tap <b>Generate Image</b> to see the result.</p></div>
+        </div>
+        <div class="result-bar"><div class="result-info"><span class="result-check" id="resultDot" style="display:none"></span><span id="resultInfo">No image generated yet</span></div><div class="download-actions"><button class="download-btn" id="downloadPng" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></svg> Download PNG</button><button class="download-btn" id="downloadJpg" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></svg> Download JPG</button></div></div>
+      </div>
+    </section>
+    <div class="bottom-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> Manual rendering runs locally. AI prompts are sent directly to Google Gemini when you use AI Studio.</div>
+    </div>
+  </main>
+
+  <div class="modal-backdrop" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="settings-modal">
+      <div class="modal-head"><div class="settings-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg></div><div><h3 id="settingsTitle">Settings & AI prompts</h3><p>Manage API profiles and copy code-generation prompts.</p></div><button class="modal-close" id="closeSettings" aria-label="Close settings">×</button></div>
+      <div class="modal-body">
+        <section class="api-settings-card">
+          <div class="api-settings-title"><div class="api-settings-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.7-8.7 2 2-2.5 2.5 1.5 1.5-2.5 2.5-1.5-1.5-3 3"/></svg></div><div><b>Google AI Studio API keys</b><span>Two private key slots for your AI profiles</span></div><span class="api-secure-tag">PRIVATE</span></div>
+          <div class="api-key-grid"><div class="api-key-field"><label class="field-label" for="apiKeyA">API Key 1</label><input id="apiKeyA" type="password" autocomplete="off" spellcheck="false" placeholder="Paste a newly created Gemini API key"><button type="button" class="key-toggle" data-target="apiKeyA" aria-label="Show or hide API key 1">Show</button></div><div class="api-key-field"><label class="field-label" for="apiKeyB">API Key 2</label><input id="apiKeyB" type="password" autocomplete="off" spellcheck="false" placeholder="Paste another Gemini API key"><button type="button" class="key-toggle" data-target="apiKeyB" aria-label="Show or hide API key 2">Show</button></div></div>
+          <label class="remember-key"><input type="checkbox" id="rememberKeys"><span>Remember these keys on this device</span></label>
+          <div class="api-key-actions"><button type="button" class="btn btn-primary" id="saveApiKeys">Save API keys</button><button type="button" class="btn btn-soft" id="testApiKey">Test selected key</button><button type="button" class="btn btn-soft" id="clearApiKeys">Remove saved keys</button></div>
+          <p class="api-security-note"><b>Security:</b> Keys are not embedded in this HTML. By default they stay in this browser tab session; enabling “Remember” saves them in this browser's local storage. A single-file browser app cannot hide a key from the device user. Do not publish this app with your personal key inside it.</p>
+        </section>
+        <div class="settings-tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg><span>Each box contains a ready-to-copy instruction for an AI. Copy the prompt, add what image you want at the end, and ask the AI to return only the requested code. AI Studio can call Google Gemini directly and stream generated code. The local renderer then turns that code into the image.</span></div><div class="prompt-grid" id="promptGrid"></div></div>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+  (() => {
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    const codeInput = $('codeInput');
+    const codeType = $('codeType');
+    const previewStage = $('previewStage');
+    const generateBtn = $('generateBtn');
+    const lineNumbers = $('lineNumbers');
+    const downloadPng = $('downloadPng');
+    const downloadJpg = $('downloadJpg');
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const XHTML_NS = 'http://www.w3.org/1999/xhtml';
+    let currentExport = null;
+    let toastTimer = null;
+
+    const SAMPLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111b45"/><stop offset="1" stop-color="#382b78"/></linearGradient>
+    <linearGradient id="orb" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#74e4f4"/><stop offset=".5" stop-color="#8a83ff"/><stop offset="1" stop-color="#f2a8e8"/></linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="55"/></filter>
+  </defs>
+  <rect width="1080" height="1080" rx="48" fill="url(#bg)"/>
+  <circle cx="830" cy="250" r="210" fill="#6c65f6" opacity=".48" filter="url(#blur)"/>
+  <circle cx="250" cy="850" r="230" fill="#25c5db" opacity=".24" filter="url(#blur)"/>
+  <circle cx="540" cy="430" r="205" fill="url(#orb)"/>
+  <circle cx="470" cy="355" r="90" fill="#fff" opacity=".14"/>
+  <path d="M385 465c76-105 169-130 280-80" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round" opacity=".6"/>
+  <text x="540" y="755" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="76" font-weight="700" letter-spacing="7">CREATE</text>
+  <text x="540" y="825" text-anchor="middle" fill="#d9d8ff" font-family="Arial,sans-serif" font-size="31" letter-spacing="5">SOMETHING BEAUTIFUL</text>
+  <text x="540" y="930" text-anchor="middle" fill="#a9b4e9" font-family="Arial,sans-serif" font-size="19" letter-spacing="3">CODECANVAS STUDIO</text>
+</svg>`;
+
+    const promptTemplates = [
+      {key:'svg', code:'SVG', title:'SVG to Image', sub:'Vector artwork · best for sharp graphics', prompt:`Create a beautiful, polished image as a SINGLE, COMPLETE, SELF-CONTAINED SVG document.\n\nRequirements:\n- Return ONLY valid SVG code. Do not use Markdown fences or explanations.\n- Root element must be <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">.\n- Use embedded SVG shapes, paths, gradients, filters and text. No external images, fonts, scripts or libraries.\n- Keep all important content inside the viewBox and compose it cleanly.\n- Make the design visually balanced, readable and detailed.\n\nIMAGE BRIEF: [Describe the image you want here]`},
+      {key:'xml', code:'XML', title:'XML to Image', sub:'XML document with an SVG root', prompt:`Create an image using VALID XML whose root element is SVG.\n\nRequirements:\n- Return ONLY a well-formed XML document. No Markdown fences or explanations.\n- The document root MUST be <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">. This is XML containing SVG markup.\n- Use only valid SVG XML elements such as rect, circle, path, text, defs, linearGradient and filter.\n- Do not include HTML, JavaScript, external resources or an XML stylesheet.\n- Escape XML special characters correctly and close every element.\n\nIMAGE BRIEF: [Describe the image you want here]`},
+      {key:'html', code:'HTML', title:'HTML to Image', sub:'A complete HTML composition', prompt:`Build a single-page visual composition that can be rendered as an image.\n\nRequirements:\n- Return ONLY a complete HTML document. No Markdown fences or explanations.\n- Put all CSS inside a <style> tag. Do not use external stylesheets, scripts, fonts, libraries or image URLs.\n- Use semantic HTML and CSS shapes, gradients, borders, shadows and inline data-free decorative elements.\n- Design for a 1080 × 1080 canvas. Set html and body to fill the canvas, remove default margins, and prevent overflow.\n- Keep the whole composition visible within the canvas.\n\nIMAGE BRIEF: [Describe the image you want here]`},
+      {key:'htmlcss', code:'HTML+CSS', title:'HTML + CSS to Image', sub:'Detailed layouts, posters and cards', prompt:`Create a visually excellent image composition using HTML and CSS.\n\nRequirements:\n- Return ONLY a complete, self-contained HTML document with inline CSS in <style>. No Markdown fences or explanation.\n- Target a 1080 × 1080 canvas. Set html, body and the main composition to fit the canvas with margin:0 and overflow:hidden.\n- Use modern CSS layout, gradients, shadows, borders, pseudo-elements and typography.\n- No external libraries, remote fonts, external images, JavaScript or network dependencies.\n- Ensure the final composition is balanced and fully visible.\n\nIMAGE BRIEF: [Describe the image you want here]`},
+      {key:'css', code:'CSS', title:'CSS Art to Image', sub:'CSS-only artwork and illustrations', prompt:`Create a complete CSS-art illustration.\n\nRequirements:\n- Return ONLY CSS code (no HTML, Markdown fences or explanation).\n- The app provides one element: <div class="art"></div>. Target it with .art and use its ::before / ::after pseudo-elements as needed.\n- Make .art fill a 1080 × 1080 scene using position:relative; width:1080px; height:1080px; overflow:hidden.\n- Draw the requested artwork using CSS gradients, shapes, borders, shadows, transforms and pseudo-elements. Do not use external images, fonts or URLs.\n- Include a suitable background and make the artwork visually balanced.\n\nIMAGE BRIEF: [Describe the image you want here]`},
+      {key:'mermaid', code:'FLOW', title:'Mermaid Flowchart', sub:'Process maps and connected diagrams', prompt:`Create a clean, easy-to-read flowchart using Mermaid syntax.\n\nRequirements:\n- Return ONLY Mermaid flowchart code. No Markdown fences or explanation.\n- Start with: flowchart TD\n- Use simple node IDs and readable labels. Use A[Process], B{Decision?}, C((Start)) style nodes where appropriate.\n- Connect nodes with arrows such as A --> B. Keep the flow logical and avoid crossing connections where possible.\n- Use concise labels. Do not add Mermaid features that are not required.\n\nFLOWCHART TOPIC: [Describe the process or diagram here]`},
+      {key:'canvasjs', code:'JS', title:'Canvas JavaScript', sub:'Draw directly with the 2D canvas API', prompt:`Create an original image by drawing on the HTML Canvas 2D context.\n\nRequirements:\n- Return ONLY JavaScript drawing statements. No Markdown fences, HTML or explanation.\n- The app provides these variables: ctx (CanvasRenderingContext2D), canvas, width and height. The canvas is already created at 1080 × 1080.\n- Draw the entire image using ctx methods such as fillRect, beginPath, arc, bezierCurveTo, fillText, createLinearGradient, createRadialGradient, save, restore and transform.\n- Set a background yourself. Use only built-in canvas drawing APIs. No DOM, external images, network requests, imports or libraries.\n- Keep all artwork inside the canvas and use readable, balanced composition.\n\nIMAGE BRIEF: [Describe the image you want here]`}
+    ];
+
+    const EXAMPLES = {
+      svg: SAMPLE_SVG,
+      xml: `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">\n  <rect width="1080" height="1080" fill="#f4f2ff"/>\n  <circle cx="540" cy="430" r="210" fill="#705cf6"/>\n  <circle cx="475" cy="355" r="65" fill="#ffffff" opacity=".25"/>\n  <text x="540" y="790" text-anchor="middle" font-size="72" font-family="Arial" font-weight="700" fill="#29234c">XML ART</text>\n</svg>`,
+      html: `<!doctype html>\n<html>\n<head>\n<style>\n*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%}body{display:grid;place-items:center;background:linear-gradient(135deg,#e5f5ff,#f5eaff);font-family:Arial,sans-serif}.card{width:76%;padding:70px 35px;text-align:center;border-radius:35px;background:white;box-shadow:0 25px 70px #5263a52b}.card h1{font-size:64px;color:#4b55d8;margin:0 0 16px}.card p{font-size:24px;color:#78809c;margin:0}\n</style>\n</head>\n<body><div class="card"><h1>Hello, World!</h1><p>HTML becomes an image.</p></div></body>\n</html>`,
+      htmlcss: `<!doctype html>\n<html><head><style>\n*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%}body{font-family:Arial,sans-serif;background:#111b37;color:white;display:grid;place-items:center}.poster{text-align:center;padding:60px}.tag{display:inline-block;padding:12px 20px;border:1px solid #7582ff;border-radius:30px;color:#bfc7ff;letter-spacing:3px;font-size:15px}.poster h1{font-size:88px;line-height:1;margin:35px 0 18px;letter-spacing:-5px}.poster h1 span{color:#8d83ff}.poster p{color:#b8c2e2;font-size:22px;letter-spacing:1px}.orb{width:160px;height:160px;border-radius:50%;margin:0 auto 28px;background:radial-gradient(circle at 30% 25%,#fff,#8a83ff 35%,#3bc4dc 75%);box-shadow:0 0 80px #7774ff80}\n</style></head><body><main class="poster"><div class="orb"></div><div class="tag">DESIGN THE FUTURE</div><h1>Think <span>Beyond.</span></h1><p>Ideas are better when they take shape.</p></main></body></html>`,
+      css: `*{box-sizing:border-box}\nhtml,body{margin:0;width:100%;height:100%;background:#10162f}\n.art{width:1080px;height:1080px;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 45%,#5148a4 0,#252557 38%,#10162f 75%);}\n.art:before{content:"";position:absolute;width:430px;height:430px;border-radius:50%;left:325px;top:250px;background:linear-gradient(135deg,#9be8ff,#8d80ff 55%,#f4a5dd);box-shadow:0 0 100px #8b81ff88,inset -35px -35px 65px #493a9a66}\n.art:after{content:"DREAM\A IN COLOR";white-space:pre;position:absolute;left:0;right:0;top:730px;text-align:center;font:800 75px/1.2 Arial,sans-serif;letter-spacing:10px;color:white;text-shadow:0 5px 30px #0005}`,
+      mermaid: `flowchart TD\n  A((Start)) --> B[Collect the idea]\n  B --> C{Ready to create?}\n  C -->|Yes| D[Generate the design]\n  C -->|Not yet| E[Improve the concept]\n  E --> B\n  D --> F[Export image]\n  F --> G((Done))`,
+      canvasjs: `const bg = ctx.createLinearGradient(0, 0, width, height);\nbg.addColorStop(0, '#101b45');\nbg.addColorStop(1, '#5b3e9c');\nctx.fillStyle = bg;\nctx.fillRect(0, 0, width, height);\nconst glow = ctx.createRadialGradient(width * 0.5, height * 0.38, 20, width * 0.5, height * 0.38, 360);\nglow.addColorStop(0, 'rgba(128,230,255,0.9)');\nglow.addColorStop(1, 'rgba(128,230,255,0)');\nctx.fillStyle = glow;\nctx.fillRect(0, 0, width, height);\nctx.beginPath();\nctx.arc(width / 2, height * 0.4, 175, 0, Math.PI * 2);\nctx.fillStyle = '#a99cff';\nctx.shadowColor = '#a99cff';\nctx.shadowBlur = 55;\nctx.fill();\nctx.shadowBlur = 0;\nctx.fillStyle = '#ffffff';\nctx.textAlign = 'center';\nctx.font = 'bold 76px Arial';\nctx.fillText('MAKE IT', width / 2, height * 0.72);\nctx.fillStyle = '#d6d9ff';\nctx.font = '28px Arial';\nctx.fillText('WITH CANVAS CODE', width / 2, height * 0.78);`
+    };
+
+    function showToast(message, isError=false){
+      const toast=$('toast');toast.textContent=message;toast.classList.toggle('error',isError);toast.classList.add('show');
+      clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),2800);
+    }
+    function updateCounts(){
+      const value=codeInput.value;const lines=value.length?value.split('\n').length:1;
+      $('lineCount').textContent=lines+' '+(lines===1?'line':'lines');$('charCount').textContent=value.length.toLocaleString()+' characters';
+      lineNumbers.textContent=Array.from({length:lines},(_,i)=>i+1).join('\n');
+    }
+    codeInput.addEventListener('input',updateCounts);
+    codeInput.addEventListener('scroll',()=>{lineNumbers.scrollTop=codeInput.scrollTop;});
+    function dimensions(){const [w,h]=$('outputSize').value.split('x').map(Number);return {w,h};}
+    function setStageRatio(){const {w,h}=dimensions();previewStage.style.aspectRatio=`${w}/${h}`;}
+    $('outputSize').addEventListener('change',()=>{setStageRatio();if(currentExport){$('resultInfo').textContent='Size changed — generate again to apply the new dimensions.';}});
+
+    function escapeHtmlAttr(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+    function cleanCss(css){return String(css).replace(/@import\s+(?:url\()?[^;]+;?/gi,'').replace(/url\(\s*(['"]?)(https?:|\/\/|file:)[^)]*\)/gi,'none');}
+    function cleanHtmlDocument(source){
+      const doc=new DOMParser().parseFromString(source,'text/html');
+      doc.querySelectorAll('script,iframe,frame,object,embed,applet,portal,form,base,link[rel="stylesheet"],meta[http-equiv]').forEach(el=>el.remove());
+      doc.querySelectorAll('*').forEach(el=>{
+        [...el.attributes].forEach(attr=>{
+          const name=attr.name.toLowerCase();const value=attr.value.trim();
+          if(name.startsWith('on')||name==='srcdoc')el.removeAttribute(attr.name);
+          else if((name==='src'||name==='href'||name==='xlink:href'||name==='action'||name==='poster') && value && !value.startsWith('#') && !value.startsWith('data:') && !value.startsWith('blob:'))el.removeAttribute(attr.name);
+          else if(name==='style')el.setAttribute('style',cleanCss(value));
+        });
+        if(el.tagName.toLowerCase()==='style')el.textContent=cleanCss(el.textContent);
+      });
+      return doc;
+    }
+    function htmlPreviewDocument(source, mode){
+      let html=source;
+      if(mode==='css')html=`<!doctype html><html><head><style>${source}</style></head><body><div class="art"></div></body></html>`;
+      const doc=cleanHtmlDocument(html);
+      const headBits=[...doc.head.children].filter(el=>['STYLE','TITLE','META'].includes(el.tagName)).map(el=>el.outerHTML).join('\n');
+      const safeBody=doc.body.innerHTML;
+      return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline' data:; font-src data:;"><style>html,body{margin:0!important;width:100%;height:100%;overflow:hidden}*{box-sizing:border-box}</style>${headBits}</head><body>${safeBody}</body></html>`;
+    }
+    function htmlToSvg(source, mode, w, h){
+      let html=source;
+      if(mode==='css')html=`<!doctype html><html><head><style>${source}</style></head><body><div class="art"></div></body></html>`;
+      const doc=cleanHtmlDocument(html);
+      const wrapper=document.createElementNS(XHTML_NS,'div');
+      wrapper.setAttribute('class','cc-html-root');
+      const htmlInline=doc.documentElement.getAttribute('style');
+      wrapper.setAttribute('style',`width:${w}px;height:${h}px;overflow:hidden;position:relative;${htmlInline||''}`);
+      const body=document.createElementNS(XHTML_NS,'div');
+      body.setAttribute('class','cc-html-body');
+      const bodyInline=doc.body.getAttribute('style');
+      if(bodyInline)body.setAttribute('style',bodyInline);
+      if(doc.body.getAttribute('class'))body.setAttribute('class','cc-html-body '+doc.body.getAttribute('class'));
+      if(doc.body.getAttribute('id'))body.setAttribute('id',doc.body.getAttribute('id'));
+      const baseStyle=document.createElementNS(XHTML_NS,'style');
+      baseStyle.textContent=`.cc-html-root{margin:0;width:${w}px;height:${h}px;overflow:hidden;position:relative} .cc-html-body{margin:0;width:100%;height:100%;overflow:hidden}*{box-sizing:border-box}`;
+      wrapper.appendChild(baseStyle);
+      const appendStyles=(root)=>[...root.querySelectorAll('style')].forEach(style=>{
+        const copy=document.createElementNS(XHTML_NS,'style');
+        copy.textContent=cleanCss(style.textContent).replace(/:root\b/g,'.cc-html-root').replace(/\bhtml\b/gi,'.cc-html-root').replace(/\bbody\b/gi,'.cc-html-body');
+        wrapper.appendChild(copy);
+      });
+      appendStyles(doc.head);
+      appendStyles(doc.body);
+      [...doc.body.childNodes].forEach(node=>body.appendChild(document.importNode(node,true)));
+      wrapper.appendChild(body);
+      const xml=new XMLSerializer().serializeToString(wrapper);
+      return `<svg xmlns="${SVG_NS}" xmlns:xhtml="${XHTML_NS}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><foreignObject x="0" y="0" width="${w}" height="${h}">${xml}</foreignObject></svg>`;
+    }
+    function sanitizeSvg(source, w, h){
+      const doc=new DOMParser().parseFromString(source,'image/svg+xml');
+      if(doc.querySelector('parsererror'))throw new Error('SVG/XML syntax is invalid. Check that every tag is properly closed.');
+      const root=doc.documentElement;
+      if(!root || root.localName.toLowerCase()!=='svg')throw new Error('This format needs an <svg> root element. Generic XML is not directly drawable as an image.');
+      root.setAttribute('xmlns',SVG_NS);
+      if(!root.getAttribute('width'))root.setAttribute('width',String(w));
+      if(!root.getAttribute('height'))root.setAttribute('height',String(h));
+      if(!root.getAttribute('viewBox'))root.setAttribute('viewBox',`0 0 ${w} ${h}`);
+      doc.querySelectorAll('script,foreignObject,iframe,object,embed,audio,video').forEach(el=>el.remove());
+      doc.querySelectorAll('*').forEach(el=>{
+        [...el.attributes].forEach(attr=>{
+          const name=attr.name.toLowerCase();const value=attr.value.trim();
+          if(name.startsWith('on'))el.removeAttribute(attr.name);
+          else if((name==='href'||name==='xlink:href') && value && !value.startsWith('#') && !value.startsWith('data:'))el.removeAttribute(attr.name);
+          else if(name==='style')el.setAttribute('style',cleanCss(value));
+        });
+        if(el.localName==='style')el.textContent=cleanCss(el.textContent);
+      });
+      return new XMLSerializer().serializeToString(doc.documentElement);
+    }
+
+    function detectMode(source){
+      const s=source.trim();
+      if(/^flowchart\s|^graph\s/i.test(s))return 'mermaid';
+      if(/\bctx\.(fillRect|strokeRect|beginPath|arc|fillText|createLinearGradient|createRadialGradient)\b|\bcanvas\.getContext\s*\(/i.test(s))return 'canvasjs';
+      if(/<svg[\s>]/i.test(s)||/<svg:/i.test(s))return /^<\?xml/i.test(s)?'xml':'svg';
+      if(/^<\?xml/i.test(s))return 'xml';
+      if(/<!doctype\s+html|<html[\s>]|<body[\s>]|<(div|main|section|article|header|footer|canvas|table|style)[\s>]/i.test(s))return 'htmlcss';
+      if(/[.#][\w-]+\s*\{/.test(s)||/^\s*(:root|body|html|\*|@media|@keyframes)\b/m.test(s))return 'css';
+      return 'html';
+    }
+
+    function parseMermaid(source,w,h){
+      const lines=source.split(/\r?\n/).map(s=>s.trim()).filter(s=>s&&!s.startsWith('%%'));
+      let direction='TD';
+      if(lines[0]){const head=lines[0].match(/^(?:flowchart|graph)\s+(TD|TB|BT|LR|RL)\b/i);if(head)direction=head[1].toUpperCase();}
+      const nodes=new Map(),edges=[];
+      const endpointRe=/^\s*([A-Za-z][\w-]*)(?:\(\((.*?)\)\)|\{(.*?)\}|\[(.*?)\]|\((.*?)\))?\s*$/;
+      function addEndpoint(raw){
+        const m=raw.match(endpointRe);if(!m)throw new Error('Could not read this Mermaid node: '+raw);
+        const id=m[1];let label=m[2]??m[3]??m[4]??m[5]??id;let shape=m[2]!==undefined?'circle':m[3]!==undefined?'diamond':m[5]!==undefined?'round':'rect';
+        if(!nodes.has(id))nodes.set(id,{id,label:label.replace(/<br\s*\/?\s*>/gi,'\n'),shape});
+        return id;
+      }
+      for(const line of lines.slice(1)){
+        if(/^classDef\b|^class\b|^style\b|^subgraph\b|^end\b/i.test(line))continue;
+        const m=line.match(/^(.+?)\s*(-->|---|-.->|==>)\s*(?:\|([^|]+)\|\s*)?(.+)$/);
+        if(!m)continue;
+        const from=addEndpoint(m[1]),to=addEndpoint(m[4]);edges.push({from,to,label:(m[3]||'').trim(),dashed:m[2]==='-.->'});
+      }
+      if(!nodes.size)throw new Error('No flowchart nodes found. Start with “flowchart TD” and connect nodes using A --> B.');
+      const incoming=new Map([...nodes.keys()].map(id=>[id,0]));edges.forEach(e=>incoming.set(e.to,(incoming.get(e.to)||0)+1));
+      const level=new Map([...nodes.keys()].map(id=>[id,0]));const queue=[...nodes.keys()].filter(id=>incoming.get(id)===0);const visited=new Set();
+      while(queue.length){const id=queue.shift();if(visited.has(id))continue;visited.add(id);for(const e of edges.filter(x=>x.from===id)){level.set(e.to,Math.max(level.get(e.to)||0,(level.get(id)||0)+1));incoming.set(e.to,incoming.get(e.to)-1);if(incoming.get(e.to)<=0)queue.push(e.to);}}
+      let fallback=[...nodes.keys()].filter(id=>!visited.has(id));fallback.forEach((id,i)=>level.set(id,Math.max(0,...[...level.values()])+i%2));
+      const levels=new Map();for(const node of nodes.values()){const n=level.get(node.id)||0;if(!levels.has(n))levels.set(n,[]);levels.get(n).push(node);}
+      const maxLabel=Math.max(0,...[...nodes.values()].map(n=>n.label.length));const nodeW=Math.min(285,Math.max(150,maxLabel*9+48));const nodeH=78;const gapX=85,gapY=75,margin=90;
+      const horizontal=direction==='LR'||direction==='RL';const orderedLevels=[...levels.keys()].sort((a,b)=>a-b);const coords=new Map();
+      orderedLevels.forEach((lv,li)=>{const group=levels.get(lv);group.forEach((node,idx)=>{let x,y;if(horizontal){x=margin+li*(nodeW+gapX);y=margin+idx*(nodeH+gapY);}else{x=margin+idx*(nodeW+gapX);y=margin+li*(nodeH+gapY);}if(direction==='RL')x=margin+(orderedLevels.length-1-li)*(nodeW+gapX);if(direction==='BT')y=margin+(orderedLevels.length-1-li)*(nodeH+gapY);coords.set(node.id,{x,y});});});
+      const maxX=Math.max(...[...coords.values()].map(p=>p.x))+nodeW+margin;const maxY=Math.max(...[...coords.values()].map(p=>p.y))+nodeH+margin;
+      const bg='#f7f8ff';let svg=`<svg xmlns="${SVG_NS}" width="${w}" height="${h}" viewBox="0 0 ${maxX} ${maxY}" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="flowBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f9faff"/><stop offset="1" stop-color="#eef1ff"/></linearGradient><linearGradient id="nodeFill" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#f1f3ff"/></linearGradient><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#8491d8"/></marker></defs><rect width="100%" height="100%" fill="url(#flowBg)"/>`;
+      edges.forEach(e=>{const a=coords.get(e.from),b=coords.get(e.to);if(!a||!b)return;let x1=a.x+nodeW/2,y1=a.y+nodeH/2,x2=b.x+nodeW/2,y2=b.y+nodeH/2;if(horizontal){x1=a.x+nodeW;y1=a.y+nodeH/2;x2=b.x;y2=b.y+nodeH/2;}else{y1=a.y+nodeH;y2=b.y;}const mid=horizontal?(x1+x2)/2:(y1+y2)/2;const d=horizontal?`M${x1} ${y1} C${mid} ${y1},${mid} ${y2},${x2} ${y2}`:`M${x1} ${y1} C${x1} ${mid},${x2} ${mid},${x2} ${y2}`;svg+=`<path d="${d}" fill="none" stroke="#929edc" stroke-width="3" ${e.dashed?'stroke-dasharray="8 7"':''} marker-end="url(#arrow)"/>`;if(e.label)svg+=`<text x="${(x1+x2)/2}" y="${(y1+y2)/2-9}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" fill="#6572ad">${escapeHtmlAttr(e.label)}</text>`;});
+      nodes.forEach(node=>{const p=coords.get(node.id),cx=p.x+nodeW/2,cy=p.y+nodeH/2;const label=escapeHtmlAttr(node.label);if(node.shape==='circle')svg+=`<ellipse cx="${cx}" cy="${cy}" rx="${nodeW/2}" ry="${nodeH/2}" fill="#e9edff" stroke="#7889ec" stroke-width="3"/>`;else if(node.shape==='diamond')svg+=`<path d="M${cx} ${p.y} L${p.x+nodeW} ${cy} L${cx} ${p.y+nodeH} L${p.x} ${cy}Z" fill="#fff5e8" stroke="#e4ad64" stroke-width="3"/>`;else svg+=`<rect x="${p.x}" y="${p.y}" width="${nodeW}" height="${nodeH}" rx="${node.shape==='round'?39:17}" fill="url(#nodeFill)" stroke="#8b98e8" stroke-width="3"/>`;const words=node.label.split(/\s+/);let lines=[],line='';words.forEach(word=>{if((line+' '+word).trim().length>25&&line){lines.push(line);line=word;}else line=(line+' '+word).trim();});if(line)lines.push(line);const shown=lines.slice(0,2);svg+=`<text x="${cx}" y="${cy-(shown.length-1)*11+6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#303b69">${shown.map((t,i)=>`<tspan x="${cx}" dy="${i===0?0:25}">${escapeHtmlAttr(t)}</tspan>`).join('')}</text>`;});
+      svg+='</svg>';return svg;
+    }
+
+    function setPreviewError(message){
+      previewStage.innerHTML=`<div class="preview-placeholder"><div class="placeholder-icon" style="color:#d65f74;background:#fff5f6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 8v5m0 4h.01"/><path d="M10.3 3.8 2.5 17.3A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.7L13.7 3.8a2 2 0 0 0-3.4 0Z"/></svg></div><h3>Could not generate image</h3><p>${escapeHtmlAttr(message)}</p></div>`;
+      currentExport=null;downloadPng.disabled=true;downloadJpg.disabled=true;$('resultDot').style.display='none';$('resultInfo').textContent='Generation failed';
+    }
+    function showSvgPreview(svg){
+      const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});const url=URL.createObjectURL(blob);const img=document.createElement('img');img.className='rendered-media';img.alt='Generated image preview';img.src=url;img.onload=()=>URL.revokeObjectURL(url);previewStage.replaceChildren(img);
+    }
+    function showHtmlPreview(source,mode){
+      const frame=document.createElement('iframe');frame.className='rendered-iframe';frame.title='Generated HTML image preview';frame.setAttribute('sandbox','');frame.setAttribute('referrerpolicy','no-referrer');frame.srcdoc=htmlPreviewDocument(source,mode);previewStage.replaceChildren(frame);
+    }
+    function showBlobPreview(blob){
+      const url=URL.createObjectURL(blob);const img=document.createElement('img');img.className='rendered-media';img.alt='Generated canvas artwork preview';img.src=url;img.onload=()=>URL.revokeObjectURL(url);previewStage.replaceChildren(img);
+    }
+    function runCanvasJavaScript(source,w,h){
+      return new Promise((resolve,reject)=>{
+        if(typeof Worker==='undefined'||typeof OffscreenCanvas==='undefined'){
+          reject(new Error('Canvas JavaScript needs a browser with OffscreenCanvas and Web Worker support. Use SVG or HTML/CSS mode on this device instead.'));return;
+        }
+        const frame=document.createElement('iframe');frame.setAttribute('sandbox','allow-scripts');frame.setAttribute('aria-hidden','true');
+        frame.style.cssText='position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0';
+        const requestId='cc-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+        let settled=false;
+        const finish=(error,blob)=>{
+          if(settled)return;settled=true;clearTimeout(timeout);window.removeEventListener('message',onMessage);frame.remove();
+          if(error)reject(error);else resolve(blob);
+        };
+        const onMessage=(event)=>{
+          if(event.source!==frame.contentWindow||!event.data||event.data.id!==requestId||event.data.type!=='cc-canvas-result')return;
+          if(!event.data.ok){finish(new Error(event.data.error||'Canvas code could not be rendered.'));return;}
+          try{finish(null,new Blob([event.data.buffer],{type:'image/png'}));}catch(e){finish(e);}
+        };
+        const timeout=setTimeout(()=>finish(new Error('Canvas rendering took too long and was stopped. Check your drawing code for endless loops.')),6000);
+        window.addEventListener('message',onMessage);
+        const safeCode=JSON.stringify(source).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
+        frame.srcdoc=`<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; connect-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; object-src 'none'; form-action 'none'"><script>
+          (function(){
+            const requestId=${JSON.stringify(requestId)};
+            const code=${safeCode};
+            const width=${w},height=${h};
+            const workerSource = ` + '`' + `onmessage = async function(event){
+              try {
+                const data=event.data;
+                const canvas=new OffscreenCanvas(data.width,data.height);
+                const ctx=canvas.getContext('2d');
+                const draw=new Function('ctx','canvas','width','height',"\"use strict\"; return (async()=>{\\n"+data.code+"\\n})();");
+                await draw(ctx,canvas,data.width,data.height);
+                const blob=await canvas.convertToBlob({type:'image/png'});
+                const buffer=await blob.arrayBuffer();
+                postMessage({ok:true,buffer},[buffer]);
+              } catch(error) { postMessage({ok:false,error:String(error&&error.message||error)}); }
+            };` + '`' + `;
+            const workerUrl=URL.createObjectURL(new Blob([workerSource],{type:'text/javascript'}));
+            let worker;
+            try {
+              worker=new Worker(workerUrl);
+              worker.onmessage=function(event){
+                worker.terminate();URL.revokeObjectURL(workerUrl);
+                const data=event.data||{};
+                if(data.ok)parent.postMessage({type:'cc-canvas-result',id:requestId,ok:true,buffer:data.buffer},'*',[data.buffer]);
+                else parent.postMessage({type:'cc-canvas-result',id:requestId,ok:false,error:data.error||'Canvas drawing failed.'},'*');
+              };
+              worker.onerror=function(event){worker.terminate();URL.revokeObjectURL(workerUrl);parent.postMessage({type:'cc-canvas-result',id:requestId,ok:false,error:event.message||'Canvas worker failed.'},'*');};
+              worker.postMessage({code,width,height});
+            } catch(error) { URL.revokeObjectURL(workerUrl);parent.postMessage({type:'cc-canvas-result',id:requestId,ok:false,error:String(error&&error.message||error)},'*'); }
+          })();
+        <\/script>`;
+        document.body.appendChild(frame);
+      });
+    }
+    async function generateImage(){
+      const raw=codeInput.value.trim();if(!raw){showToast('Paste your code first.',true);codeInput.focus();return false;}
+      const {w,h}=dimensions();let mode=codeType.value;if(mode==='auto')mode=detectMode(raw);
+      generateBtn.disabled=true;generateBtn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3a9 9 0 1 0 9 9" stroke-linecap="round"/></svg> Generating…';
+      try{
+        let svg;
+        if(mode==='canvasjs'){
+          const canvasBlob=await runCanvasJavaScript(raw,w,h);
+          currentExport={blob:canvasBlob,w,h,mode};showBlobPreview(canvasBlob);
+        }else{
+          if(mode==='svg'||mode==='xml')svg=sanitizeSvg(raw,w,h);
+          else if(mode==='mermaid')svg=parseMermaid(raw,w,h);
+          else if(mode==='html'||mode==='htmlcss'||mode==='css')svg=htmlToSvg(raw,mode,w,h);
+          else throw new Error('Unsupported code format. Select one of the available formats.');
+          currentExport={svg,w,h,mode};
+          if(mode==='html'||mode==='htmlcss'||mode==='css')showHtmlPreview(raw,mode);else showSvgPreview(svg);
+        }
+        downloadPng.disabled=false;downloadJpg.disabled=false;$('resultDot').style.display='inline-block';
+        const pretty={svg:'SVG',xml:'XML / SVG',html:'HTML',htmlcss:'HTML + CSS',css:'CSS Art',mermaid:'Mermaid',canvasjs:'Canvas JavaScript'}[mode]||mode;
+        $('resultInfo').textContent=`Generated · ${pretty} · ${w} × ${h}`;showToast('Image generated successfully.');return true;
+      }catch(error){setPreviewError(error.message||'Something went wrong.');showToast(error.message||'Could not generate image.',true);return false;}
+      finally{generateBtn.disabled=false;generateBtn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-2-5.8L4 11l6-2.2L12 3Z"/><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></svg> Generate Image';}
+    }
+    generateBtn.addEventListener('click',generateImage);
+    codeInput.addEventListener('keydown',(event)=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();generateImage();}});
+
+    async function downloadImage(format,buttonOverride=null){
+      if(!currentExport){showToast('Generate an image before downloading.',true);return;}
+      const button=buttonOverride||(format==='png'?downloadPng:downloadJpg);button.disabled=true;const old=button.innerHTML;button.textContent='Preparing…';
+      try{
+        const {svg,blob:sourceBlob,w,h}=currentExport;
+        const imageBlob=sourceBlob||new Blob([svg],{type:'image/svg+xml;charset=utf-8'});const url=URL.createObjectURL(imageBlob);
+        const img=new Image();img.decoding='async';img.src=url;
+        await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('This browser could not rasterize the preview. Try a self-contained SVG or HTML/CSS composition.'));});
+        const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d',{alpha:format==='png'});
+        if(format==='jpg'){ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);}ctx.drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+        const mime=format==='png'?'image/png':'image/jpeg';const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not create the image file.')),mime,.94));
+        const fileUrl=URL.createObjectURL(blob);const a=document.createElement('a');a.href=fileUrl;a.download=`codecanvas-${Date.now()}.${format}`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(fileUrl),1500);showToast(`${format.toUpperCase()} download started.`);
+      }catch(error){showToast(error.message||'Download failed.',true);}
+      finally{button.disabled=false;button.innerHTML=old;}
+    }
+    downloadPng.addEventListener('click',()=>downloadImage('png'));
+    downloadJpg.addEventListener('click',()=>downloadImage('jpg'));
+
+    $('loadExample').addEventListener('click',()=>{const selected=codeType.value==='auto'?'svg':codeType.value;codeInput.value=EXAMPLES[selected]||SAMPLE_SVG;if(selected==='xml')codeType.value='xml';updateCounts();codeInput.focus();showToast('Example code loaded. Tap Generate Image.');});
+    $('clearCode').addEventListener('click',()=>{codeInput.value='';updateCounts();codeInput.focus();showToast('Code cleared.');});
+    $('pasteCode').addEventListener('click',async()=>{try{if(!navigator.clipboard?.readText)throw new Error('Clipboard access is not available. Long-press the code box and choose Paste.');const text=await navigator.clipboard.readText();if(!text){showToast('Clipboard is empty.',true);return;}codeInput.value=text;updateCounts();showToast('Code pasted.');}catch(e){showToast(e.message||'Could not access clipboard.',true);}});
+
+    // ---------------- AI image generation ----------------
+    const AI_KEY_SESSION = 'codecanvas.ai.keys.session.v1';
+    const AI_KEY_LOCAL = 'codecanvas.ai.keys.local.v1';
+    let aiAbortController = null;
+    let aiGeneratedMode = 'svg';
+    function loadApiKeys(){
+      let data=null;
+      try{data=JSON.parse(localStorage.getItem(AI_KEY_LOCAL)||'null');if(data){$('rememberKeys').checked=true;}}
+      catch(_){data=null;}
+      if(!data){try{data=JSON.parse(sessionStorage.getItem(AI_KEY_SESSION)||'null');}catch(_){data=null;}}
+      $('apiKeyA').value=data?.A||'';$('apiKeyB').value=data?.B||'';
+      updateAiKeyStatus();
+    }
+    function getApiKeys(){
+      try{const local=JSON.parse(localStorage.getItem(AI_KEY_LOCAL)||'null');if(local)return local;}catch(_){}
+      try{return JSON.parse(sessionStorage.getItem(AI_KEY_SESSION)||'{}')||{};}catch(_){return {};}
+    }
+    function updateAiKeyStatus(){
+      const keys=getApiKeys();const hasA=!!keys.A,hasB=!!keys.B;
+      $('aiConnectionStatus').textContent=(hasA||hasB)?`API profiles ready · ${hasA?'Key 1':''}${hasA&&hasB?' + ':''}${hasB?'Key 2':''}`:'Ready · Add your Google AI Studio API keys in Settings';
+    }
+    function saveApiKeys(){
+      const keys={A:$('apiKeyA').value.trim(),B:$('apiKeyB').value.trim()};
+      if(!keys.A&&!keys.B){showToast('Add at least one API key first.',true);return;}
+      try{
+        if($('rememberKeys').checked){localStorage.setItem(AI_KEY_LOCAL,JSON.stringify(keys));sessionStorage.removeItem(AI_KEY_SESSION);}
+        else{sessionStorage.setItem(AI_KEY_SESSION,JSON.stringify(keys));localStorage.removeItem(AI_KEY_LOCAL);}
+        updateAiKeyStatus();showToast('API key profiles saved in this browser.');
+      }catch(error){showToast('Could not save keys in this browser. Check storage permissions.',true);}
+    }
+    function clearApiKeys(){
+      $('apiKeyA').value='';$('apiKeyB').value='';
+      try{localStorage.removeItem(AI_KEY_LOCAL);sessionStorage.removeItem(AI_KEY_SESSION);}catch(_){}
+      $('rememberKeys').checked=false;updateAiKeyStatus();showToast('Saved API keys removed.');
+    }
+    $('saveApiKeys').addEventListener('click',saveApiKeys);
+    $('clearApiKeys').addEventListener('click',clearApiKeys);
+    $('testApiKey').addEventListener('click',async()=>{
+      const keys=getApiKeys();const slot=$('aiKeySlot').value;const apiKey=keys[slot]||'';
+      if(!apiKey){showToast(`Save API Key ${slot==='A'?'1':'2'} first.`,true);return;}
+      const model=$('aiModel').value;const button=$('testApiKey');const old=button.textContent;button.disabled=true;button.textContent='Testing…';
+      try{const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}`,{headers:{'x-goog-api-key':apiKey}});if(!response.ok){let message=`API test failed (${response.status}).`;try{const data=await response.json();message=data?.error?.message||message;}catch(_){}throw new Error(message);}showToast(`${model} connection successful.`);$('aiConnectionStatus').textContent=`Connected · ${model}`;}
+      catch(error){showToast(error.message||'Could not connect to Google AI.',true);}
+      finally{button.disabled=false;button.textContent=old;}
+    });
+    document.querySelectorAll('.key-toggle').forEach(button=>button.addEventListener('click',()=>{
+      const field=$(button.dataset.target);const visible=field.type==='text';field.type=visible?'password':'text';button.textContent=visible?'Show':'Hide';
+    }));
+
+    function setAiBusy(busy){
+      $('aiGenerateBtn').disabled=busy;$('aiCancelBtn').hidden=!busy;
+      $('aiGenerateBtn').innerHTML=busy?'<span class="ai-spinner"></span> Generating…':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-2-5.8L4 11l6-2.2L12 3Z"/><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></svg> Generate Image with AI';
+    }
+    function selectedFormatLabel(mode){return ({auto:'Auto format',svg:'SVG',xml:'XML / SVG',html:'HTML',htmlcss:'HTML + CSS',css:'CSS Art',mermaid:'Mermaid',canvasjs:'Canvas JavaScript'})[mode]||mode;}
+    function buildAiInstruction(userBrief,format,quality,width,height,model){
+      const formatNotes={
+        auto:'Choose the strongest format from SVG, HTML+CSS, Mermaid, CSS Art, or Canvas JavaScript based on the request. Prefer self-contained SVG for illustrations/posters, HTML+CSS for typography-heavy layouts, and Mermaid only for diagrams. The first output must clearly identify itself by syntax so the app can auto-detect it.',
+        svg:'Return a single complete, self-contained SVG document with an <svg xmlns="http://www.w3.org/2000/svg"> root.',
+        xml:'Return well-formed XML with an SVG root element. This is XML-based SVG artwork, not generic non-visual XML.',
+        html:'Return one complete HTML document with all styles inline and no external dependencies.',
+        htmlcss:'Return one complete HTML document with embedded CSS in a <style> element. Use a carefully designed composition.',
+        css:'Return CSS only. The renderer provides a <div class="art"></div> element; style .art and its pseudo-elements.',
+        mermaid:'Return valid Mermaid flowchart syntax only, beginning with flowchart TD or flowchart LR.',
+        canvasjs:'Return JavaScript drawing statements only, using the provided 2D canvas variables ctx, canvas, width and height.'
+      };
+      const qualityText={
+        standard:'Create a clean, polished, balanced design with a clear visual hierarchy.',
+        high:'HIGH QUALITY: make the composition premium and highly finished. Use refined spacing, a deliberate palette, strong hierarchy, tasteful micro-details, consistent alignment, rich but controlled lighting/shadows/gradients where appropriate, and exceptionally readable typography. Avoid generic or empty-looking results.',
+        ultra:'ULTRA DETAIL: invest maximum effort in a gallery-quality, art-directed composition. Add sophisticated layered depth, nuanced lighting, carefully controlled contrast, intricate but purposeful details, polished typography, perfect alignment, balanced negative space, and a cohesive visual system. Ensure every element supports the brief; do not clutter the result.'
+      };
+      return `You are an expert visual designer and generative-code artist. Create the source code for one finished image composition.\n\nIMAGE BRIEF:\n${userBrief}\n\nOUTPUT SPECIFICATION:\n- Target canvas: ${width} × ${height} pixels.\n- Requested code format: ${formatNotes[format]||formatNotes.auto}\n- Visual quality: ${qualityText[quality]||qualityText.high}\n- The final composition must fit the entire canvas, with intentional margins and no accidental clipping.\n- Use a cohesive color palette and high-quality composition. Make all requested words correctly spelled and legible.\n- Keep the code self-contained and renderable offline. Do not rely on remote images, external fonts, external libraries, imports, network calls, or unavailable assets. Use vector shapes, gradients, CSS art, or native canvas drawing instead.\n- Do not include scripts in SVG/HTML. Do not include explanations, analysis, alternatives, or Markdown code fences.\n- Return ONLY the raw code required by the selected format.\n- If any part of the brief is ambiguous, make tasteful design decisions rather than asking questions.\n\nMODEL SELECTED: ${model}\n`;
+    }
+    function extractGeneratedCode(text){
+      let value=String(text||'').trim();
+      value=value.replace(/^```(?:svg|xml|html|css|javascript|js|mermaid)?\s*/i,'').replace(/\s*```$/,'').trim();
+      value=value.replace(/^Here(?:'s| is) the (?:SVG|HTML|CSS|code)[^\n]*\n/i,'').trim();
+      return value;
+    }
+    async function streamGeminiCode(model,apiKey,prompt,signal,onChunk){
+      const endpoint=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
+      const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.75,topP:0.92,maxOutputTokens:16000}}),signal});
+      if(!response.ok){let message=`Google API request failed (${response.status}).`;try{const err=await response.json();message=err?.error?.message||message;}catch(_){}throw new Error(message);}
+      if(!response.body){const data=await response.json();const text=(data.candidates||[]).flatMap(c=>c.content?.parts||[]).map(p=>p.text||'').join('');if(text)onChunk(text);return text;}
+      const reader=response.body.getReader();const decoder=new TextDecoder();let buffer='',whole='';
+      function processEvent(eventText){
+        const dataLines=eventText.split(/\r?\n/).filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trim());
+        for(const dataText of dataLines){if(!dataText||dataText==='[DONE]')continue;try{const json=JSON.parse(dataText);const chunks=(json.candidates||[]).flatMap(c=>c.content?.parts||[]).map(part=>part.text||'').join('');if(chunks){whole+=chunks;onChunk(whole);}}catch(_){} }
+      }
+      while(true){const {value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const events=buffer.split(/\r?\n\r?\n/);buffer=events.pop()||'';events.forEach(processEvent);}
+      buffer+=decoder.decode();if(buffer.trim())processEvent(buffer);
+      if(!whole.trim())throw new Error('The model returned no code. Try another model or a shorter prompt.');
+      return whole;
+    }
+    function renderAiGeneratedVisual(source,mode){
+      const {w,h}=dimensions();$('aiImageStage').style.aspectRatio=`${w}/${h}`;
+      if(mode==='html'||mode==='htmlcss'||mode==='css'){
+        const frame=document.createElement('iframe');frame.className='rendered-iframe';frame.title='AI generated image';frame.setAttribute('sandbox','');frame.setAttribute('referrerpolicy','no-referrer');frame.srcdoc=htmlPreviewDocument(source,mode);$('aiImageStage').replaceChildren(frame);
+      }else{
+        const blob=currentExport?.blob||new Blob([currentExport?.svg||source],{type:currentExport?.blob?'image/png':'image/svg+xml;charset=utf-8'});
+        const url=URL.createObjectURL(blob);const image=document.createElement('img');image.className='rendered-media';image.alt='AI generated image preview';image.onload=()=>URL.revokeObjectURL(url);image.onerror=()=>URL.revokeObjectURL(url);image.src=url;$('aiImageStage').replaceChildren(image);
+      }
+    }
+    async function generateWithAI(){
+      const brief=$('aiPrompt').value.trim();if(!brief){showToast('Describe the image you want first.',true);$('aiPrompt').focus();return;}
+      const keys=getApiKeys();const slot=$('aiKeySlot').value;const apiKey=keys[slot]||'';
+      if(!apiKey){showToast(`API Key ${slot==='A'?'1':'2'} is empty. Add it in Settings.`,true);modal.classList.add('open');$('apiKeyA').focus();return;}
+      const model=$('aiModel').value;const format=$('aiFormat').value;const quality=$('aiQuality').value;
+      const [w,h]=$('aiOutputSize').value.split('x').map(Number);$('outputSize').value=$('aiOutputSize').value;setStageRatio();
+      const prompt=buildAiInstruction(brief,format,quality,w,h,model);
+      aiAbortController=new AbortController();setAiBusy(true);
+      $('aiIdlePlaceholder').hidden=true;$('aiOutputLayout').hidden=true;$('aiCodePanel').hidden=true;$('aiProgress').hidden=false;$('aiLivePanel').hidden=false;
+      $('aiProgressText').textContent=`Connecting to ${model}…`;$('aiStreamCode').textContent='';$('aiLiveChars').textContent='0 characters';$('aiResultCaption').textContent='Generating source code in real time';$('aiUsedModel').textContent=model;$('aiProgressPct').textContent='LIVE';
+      try{
+        $('aiProgressText').textContent='AI is writing your image code…';
+        const raw=await streamGeminiCode(model,apiKey,prompt,aiAbortController.signal,(partial)=>{
+          $('aiStreamCode').textContent=partial;$('aiLiveChars').textContent=partial.length.toLocaleString()+' characters';
+          const pre=$('aiStreamCode');pre.scrollTop=pre.scrollHeight;
+        });
+        const code=extractGeneratedCode(raw);if(!code)throw new Error('The AI response was empty after cleaning. Try again.');
+        $('aiGeneratedCode').value=code;
+        let renderMode=format==='auto'?detectMode(code):format;
+        if(renderMode==='xml'&&!/^\s*<\?xml/i.test(code)&&!/<svg[\s>]/i.test(code))renderMode=detectMode(code);
+        $('aiProgressText').textContent='Code ready · rendering your image…';
+        codeInput.value=code;codeType.value=renderMode;updateCounts();aiGeneratedMode=renderMode;
+        const ok=await generateImage();if(!ok||!currentExport){$('aiOutputLayout').hidden=false;$('aiLivePanel').hidden=true;$('aiCodePanel').hidden=false;$('aiCodeTypeLabel').textContent=selectedFormatLabel(renderMode).toUpperCase();throw new Error('Code was generated, but the local renderer could not create an image. The generated source is still available below.');}
+        $('aiGeneratedCode').value=code;$('aiCodeTypeLabel').textContent=selectedFormatLabel(renderMode).toUpperCase();
+        renderAiGeneratedVisual(code,renderMode);
+        $('aiProgress').hidden=true;$('aiLivePanel').hidden=true;$('aiOutputLayout').hidden=false;$('aiIdlePlaceholder').hidden=true;
+        $('aiResultCaption').textContent='Your image is ready · source code is saved below';$('aiFinalMeta').textContent=`${selectedFormatLabel(renderMode)} · ${w} × ${h} · ${quality.toUpperCase()} quality`;
+        $('aiUsedModel').textContent=model;$('aiProgressPct').textContent='DONE';showToast('AI image generated successfully.');
+      }catch(error){
+        if(error.name==='AbortError'){showToast('AI generation stopped.');$('aiProgressText').textContent='Generation stopped';}
+        else{showToast(error.message||'AI generation failed.',true);$('aiProgressText').textContent=error.message||'Generation failed';}
+        $('aiLivePanel').hidden=false;$('aiProgress').hidden=false;
+      }finally{setAiBusy(false);aiAbortController=null;}
+    }
+    $('aiGenerateBtn').addEventListener('click',generateWithAI);
+    $('aiCancelBtn').addEventListener('click',()=>{if(aiAbortController)aiAbortController.abort();});
+    $('aiClearPrompt').addEventListener('click',()=>{$('aiPrompt').value='';$('aiPrompt').focus();});
+    $('aiViewCode').addEventListener('click',()=>{const panel=$('aiCodePanel');panel.hidden=!panel.hidden;$('aiViewCode').textContent=panel.hidden?'View code':'Hide code';if(!panel.hidden)panel.scrollIntoView({behavior:'smooth',block:'nearest'});});
+    $('aiCopyCode').addEventListener('click',()=>copyText($('aiGeneratedCode').value));
+    $('aiDownloadPng').addEventListener('click',()=>downloadImage('png',$('aiDownloadPng')));
+    $('aiDownloadJpg').addEventListener('click',()=>downloadImage('jpg',$('aiDownloadJpg')));
+    $('aiOpenSettings').addEventListener('click',()=>{modal.classList.add('open');$('closeSettings').focus();});
+    $('aiBackToManual').addEventListener('click',()=>{ $('aiWorkspace').hidden=true;$('manualWorkspace').hidden=false;$('openAIStudio').classList.remove('active');window.scrollTo({top:0,behavior:'smooth'});});
+    $('openAIStudio').addEventListener('click',()=>{ $('manualWorkspace').hidden=true;$('aiWorkspace').hidden=false;$('openAIStudio').classList.add('active');window.scrollTo({top:0,behavior:'smooth'});$('aiPrompt').focus({preventScroll:true});});
+    $('aiOutputSize').addEventListener('change',()=>{ $('outputSize').value=$('aiOutputSize').value;setStageRatio(); });
+
+    function renderPromptCards(){
+      const grid=$('promptGrid');grid.innerHTML='';
+      promptTemplates.forEach((item,index)=>{
+        const card=document.createElement('article');card.className='prompt-card';
+        const head=document.createElement('div');head.className='prompt-card-head';
+        const code=document.createElement('div');code.className='prompt-code';code.textContent=item.code;
+        const labels=document.createElement('div');const title=document.createElement('div');title.className='prompt-title';title.textContent=item.title;const sub=document.createElement('div');sub.className='prompt-sub';sub.textContent=item.sub;labels.append(title,sub);head.append(code,labels);
+        const area=document.createElement('textarea');area.readOnly=true;area.value=item.prompt;area.setAttribute('aria-label',item.title+' prompt');
+        const foot=document.createElement('div');foot.className='prompt-card-foot';const copy=document.createElement('button');copy.className='copy-prompt';copy.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg> Copy prompt';copy.addEventListener('click',()=>copyText(item.prompt,copy));foot.append(copy);card.append(head,area,foot);grid.append(card);
+      });
+    }
+    async function copyText(text,button){
+      try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);}else{const temp=document.createElement('textarea');temp.value=text;temp.style.position='fixed';temp.style.opacity='0';document.body.append(temp);temp.select();const ok=document.execCommand('copy');temp.remove();if(!ok)throw new Error('Copy not available');}if(button){const old=button.innerHTML;button.textContent='Copied!';setTimeout(()=>button.innerHTML=old,1400);}showToast('Prompt copied to clipboard.');}
+      catch(e){showToast('Could not copy automatically. Select the text and copy it.',true);}
+    }
+    const modal=$('settingsModal');
+    $('openSettings').addEventListener('click',()=>{modal.classList.add('open');$('closeSettings').focus();});
+    $('closeSettings').addEventListener('click',()=>modal.classList.remove('open'));
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open');});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')modal.classList.remove('open');});
+
+    renderPromptCards();loadApiKeys();updateCounts();setStageRatio();
+    codeInput.value=SAMPLE_SVG;updateCounts();
+    setTimeout(()=>{$('introScreen').classList.add('hide');},1250);
+    // Keep the manual editor idle until the user asks for a render.
+  })();
+  </script>
+</body>
+</html>
